@@ -3,13 +3,15 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { closeSidebar } from "../utils/appSlice";
 import CommentsContainer from "./CommentsContainer";
-import { YOUTUBE_VIDEO_DETAIL_API } from "../utils/constants";
+import { YOUTUBE_LIVE_CHAT_ID_API, YOUTUBE_VIDEO_DETAIL_API } from "../utils/constants";
 import { fetchChannelDetails } from "../utils/channelSlice";
+import LiveChat from "./LiveChat";
 
 const WatchPage = () => {
   const [searchParams] = useSearchParams();
   const videoId = searchParams.get("v");
   const [videoDetails, setVideoDetails] = useState(null);
+  const [liveChatId, setLiveChatId] = useState(null);
 
   const dispatch = useDispatch();
   const channelLogo = useSelector(
@@ -44,6 +46,17 @@ const WatchPage = () => {
         setVideoDetails(videoData);
 
         dispatch(fetchChannelDetails(videoData.snippet.channelId));
+
+        const liveChatResponse = await fetch(YOUTUBE_LIVE_CHAT_ID_API + videoId);
+        const liveChatData = await liveChatResponse.json();
+        if (
+          liveChatData.items.length > 0 &&
+          liveChatData.items[0].liveStreamingDetails
+        ) {
+          setLiveChatId(
+            liveChatData.items[0].liveStreamingDetails.activeLiveChatId
+          );
+        }
       } catch (error) {
         console.error("Error fetching details:", error);
       }
@@ -73,10 +86,8 @@ const WatchPage = () => {
             height="388"
             src={`https://www.youtube.com/embed/${videoId}`}
             title="YouTube video player"
-            frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen
+            allowFullScreen
           ></iframe>
           <div className="mt-3">
             <h1 className="font-bold text-xl">{truncateTitle(title)}</h1>
@@ -92,6 +103,9 @@ const WatchPage = () => {
               <span className="font-semibold">{channelTitle}</span>
             </div>
           </div>
+        </div>
+        <div className="w-full h-full">
+          {liveChatId && <LiveChat liveChatId={liveChatId} />}
         </div>
       </div>
       <CommentsContainer videoId={videoId} />
